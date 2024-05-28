@@ -50,7 +50,18 @@ def print_all_collections():
             print(doc)
 
 
+def get_all_properties_of(collection_name, query):
+    if not (current_class := db[collection_name].find_one(query)):
+        return dict()
+    parent_class = get_doc_from_where(collection_name, {"Name": {"$eq": current_class["Parent"]}})
+    if parent_class:
+        return {**current_class["Properties"], **get_all_properties_of(collection_name,
+                                                                   {"Name": {"$eq": parent_class["Name"]}})}
+    return current_class["Properties"]
+
+
 client = MongoClient("mongodb://localhost:27017/")
 db = client[DATABASE_NAME]
+
 
 

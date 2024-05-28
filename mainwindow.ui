@@ -446,8 +446,8 @@
        <widget class="QPushButton" name="NewEventInstance">
         <property name="geometry">
          <rect>
-          <x>240</x>
-          <y>450</y>
+          <x>480</x>
+          <y>470</y>
           <width>221</width>
           <height>41</height>
          </rect>
@@ -466,7 +466,7 @@
          </rect>
         </property>
        </widget>
-       <widget class="QTableView" name="EventsList">
+       <widget class="QTableView" name="EventsTable">
         <property name="geometry">
          <rect>
           <x>470</x>
@@ -475,8 +475,14 @@
           <height>441</height>
          </rect>
         </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+        </property>
        </widget>
-       <widget class="QTableView" name="EventDetails">
+       <widget class="QTableView" name="EventDetailsTable">
         <property name="geometry">
          <rect>
           <x>730</x>

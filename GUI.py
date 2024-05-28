@@ -251,7 +251,6 @@ class MainWindow(QMainWindow):
         self.NewEntryButton.clicked.connect(self.new_entry)
 
         self.update_entries_table()
-        self.EntriesTable.setModel(self.entries_table_model)
         self.EntriesTable.clicked.connect(self.show_entry_details)
 
         self.UpdateEntryButton.clicked.connect(self.update_entry)
@@ -268,8 +267,51 @@ class MainWindow(QMainWindow):
         self.update_event_classes_tree()
         self.EventClassTree.itemClicked.connect(self.show_event_class_details)
 
+        self.events_table_model = TableModel(["Date", "Type"])
+        self.update_events_table()
+        self.EventsTable.clicked.connect(self.show_event_details)
+
+        self.events_details_table_model = TableModel(["Date", "Type", "Comment", "Properties"])
+        self.EventDetailsTable.setModel(self.events_details_table_model)
+
+    def selected_event(self):
+        print("finding selected event")
+        selected_indexes = self.EventsTable.selectionModel().selectedRows()
+        if not selected_indexes:
+            return False
+        selected_row = selected_indexes[0].row()
+        date = self.events_table_model.get_cell(selected_row, "Date")
+        type = self.events_table_model.get_cell(selected_row, "Type")
+        query = {"Class": {"$eq": type},
+                 "date_time": {"$gte": datetime.combine(date.toPyDate(), datetime.min.time()),
+                                   "$lt": datetime.combine(date.addDays(1).toPyDate(), datetime.min.time())}}
+        return db_manager.get_doc_from_where("Events", query)
+
+    def show_event_details(self):
+        if not (selected_event := self.selected_event()):
+            return False
+        print(f"{selected_event = }")
+        self.events_details_table_model = TableModel(["Date", "Type", "Comment", "Properties"])
+        row = dict()
+        row["Date"] = QtCore.QDateTime(selected_event["date_time"]).date()
+        row["Type"] = selected_event["Class"]
+        row["Comment"] = selected_event["Comment"]
+        row["Properties"] = selected_event["Properties"]
+        self.events_details_table_model.add_row(row)
+        print(f"{row = }")
+        self.EventDetailsTable.setModel(self.events_details_table_model)
+
+    def update_events_table(self):
+        self.events_table_model = TableModel(["Date", "Type"])
+        for doc in db_manager.get_docs_from("Events"):
+            row = dict()
+            row["Date"] = QtCore.QDateTime(doc["date_time"]).date()
+            row["Type"] = doc["Class"]
+            self.events_table_model.add_row(row)
+        self.EventsTable.setModel(self.events_table_model)
+
     def new_event_instance(self):
-        new_event_window = NewEventInstance(self.update_event_classes_tree)
+        new_event_window = NewEventInstance(self.update_events_table)
         new_event_window.show()
 
     def update_event_classes_tree(self):

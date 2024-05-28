@@ -1,15 +1,38 @@
 from time import time as Time
+import datetime
+from dataclasses import dataclass
+from dateutil import parser
+
+
+def get_day(the_date: datetime.date):
+    with open(f"ExampleDays/{the_date.strftime("%d-%m-%Y")}.md", "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    return lines
+
+
+def get_today():
+    today = datetime.date.today().strftime("%d-%m-%Y")
+    with open(f"ExampleDays/{today}.md", "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    return lines
+
+
+@dataclass
+class Entry:
+    title: str
+    date: datetime.date
+    contents: str
 
 
 class Day:
-    def __init__(self, date, tasks):
-        self.date = date
+    def __init__(self, this_date, tasks):
+        self.date: datetime.date = this_date
         self.tasks = tasks
 
-        self.woke_up = Time()
-        self.fell_asleep = Time()
-        self.mood = 0
-        self.notes = ""
+        self.woke_up: Time
+        self.fell_asleep: Time
+        self.mood: int
+        self.notes: list[Entry] = []
 
     def set_wake_up_time(self, time):
         self.woke_up = time
@@ -33,7 +56,7 @@ class Task:
     def set_notes(self, notes: str):
         self.notes = notes
 
-    def completed(self):
+    def complete(self):
         self.completed = True
 
 

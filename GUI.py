@@ -6,10 +6,27 @@ import DB_Mongo as db_manager
 from datetime import datetime
 
 
+DT_TO_WIDGET = {
+            "datetime": QtWidgets.QDateTimeEdit,
+            "int": QtWidgets.QSpinBox,
+            "str": QtWidgets.QLineEdit,
+            "float": QtWidgets.QDoubleSpinBox,
+            "bool": QtWidgets.QCheckBox
+        }
+DT_WIDGET_TO_DATA = {
+            "datetime": lambda x: x.dateTime().toPyDateTime(),
+            "int": lambda x: x.value(),
+            "float": lambda x: x.value(),
+            "str": lambda x: x.text(),
+            "bool": lambda x: x.isChecked()
+        }
+
+
 class TableModel(QtCore.QAbstractTableModel):
-    def __init__(self, columns, parent=None):
+    def __init__(self, headers, parent=None, orientation=Qt.Orientation.Horizontal):
         super(TableModel, self).__init__(parent)
-        self.columns = columns
+        self.headers = headers
+        self.orientation = orientation
         self._data: list[dict] = []
 
     def get_cell(self, row, column):
@@ -19,23 +36,61 @@ class TableModel(QtCore.QAbstractTableModel):
         self._data.append(row)
 
     def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self._data)
+        if self.orientation == Qt.Orientation.Horizontal:
+            return len(self._data)
+        elif self.orientation == Qt.Orientation.Vertical:
+            return len(self.headers)
+        else:
+            print(f"Unknown Orientation: {self.orientation}")
 
     def columnCount(self, parent=QtCore.QModelIndex()):
-        return len(self.columns)
+        if self.orientation == Qt.Orientation.Horizontal:
+            return len(self.headers)
+        elif self.orientation == Qt.Orientation.Vertical:
+            return len(self._data)
+        else:
+            print(f"Unknown Orientation: {self.orientation}")
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
             return QtCore.QVariant()
         if role == Qt.ItemDataRole.DisplayRole:
-            return self._data[index.row()].get(self.columns[index.column()], QtCore.QVariant())
+            if self.orientation == Qt.Orientation.Horizontal:
+                return self._data[index.row()].get(self.headers[index.column()], QtCore.QVariant())
+            elif self.orientation == Qt.Orientation.Vertical:
+                return self._data[index.column()].get(self.headers[index.row()], QtCore.QVariant())
+            else:
+                print(f"Unknown Orientation: {self.orientation}")
         return QtCore.QVariant()
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-        if role != Qt.ItemDataRole.DisplayRole or orientation != Qt.Orientation.Horizontal:
+        if role != Qt.ItemDataRole.DisplayRole or orientation != self.orientation:
             return QtCore.QVariant()
-        # What's the header for the given column?
-        return self.columns[section]
+        # What's the header for the given section?
+        return self.headers[section]
+
+
+class TableViewDelegate(QtWidgets.QStyledItemDelegate):
+    def __init__(self, table_view, parent=None):
+        super().__init__(parent)
+        self.table_view = table_view
+
+    def createEditor(self, parent, option, index):
+        table_widget = QtWidgets.QTableWidget(parent)
+        table_widget.setRowCount(2)  # Example row count
+        table_widget.setColumnCount(2)  # Example column count
+        # Fill the inner table with some example data
+        for row in range(2):
+            for column in range(2):
+                item = QtWidgets.QTableWidgetItem(f"{row},{column}")
+                table_widget.setItem(row, column, item)
+        return table_widget
+
+    def setEditorData(self, editor, index):
+        pass
+
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
 
 
 class AddTask(QWidget):
@@ -86,7 +141,7 @@ class NewEventClass(QWidget):
         super().__init__()
         self.ui = uic.loadUi("new_event_class.ui", self)
         # Widgets added by "new_event_class.ui"
-        self.ClassProperties: QtWidgets.QTableWidget
+        self.ClassProperties: QtWidgets.QTableView
         self.ConfirmAddEventClass: QPushButton
         self.ClearProperty: QPushButton
         self.ParentClass: QComboBox
@@ -96,7 +151,8 @@ class NewEventClass(QWidget):
         self.AddProperty: QPushButton
 
         self.update_method = update_event_class_list_method
-        self.new_properties: dict = {}
+        self.new_properties = dict()
+        self.new_property_defaults = dict()
 
         # initializing comboboxes
         self.PropertyDataType.addItems([data_type["Name"] for data_type in db_manager.get_docs_from("DataTypes")])
@@ -105,6 +161,10 @@ class NewEventClass(QWidget):
 
         # Adding custom properties
         self.AddProperty.clicked.connect(self.add_property)
+
+        # Setting default property values
+        self.PropertyDefaultWidget = None
+        self.NewDefaultProperty.clicked.connect(self.add_property_default)
 
         def enable_add_property():
             if self.PropertyName.text() and self.PropertyDataType.currentText():
@@ -125,30 +185,68 @@ class NewEventClass(QWidget):
         self.ClassName.textChanged.connect(enable_add_class)
         self.ParentClass.currentIndexChanged.connect(enable_add_class)
         self.ConfirmAddEventClass.clicked.connect(self.add_event_class)
+        self.ClassProperties.clicked.connect(self.select_property_default)
 
     def update_parent_class_options(self):
         self.ParentClass.addItems(
             [event_class["Name"] for event_class in db_manager.get_docs_from("EventClasses")])
 
     def update_class_properties(self):
-        properties_table_model = TableModel(["Property Name", "Data Type"])
+        properties_table_model = TableModel(["Property Name", "Value"])
         event_properties: dict = dict(self.new_properties)
+        event_defaults: dict = dict(self.new_property_defaults)
         if parent_class_name := self.ParentClass.currentText():
             parent_class = db_manager.get_doc_from_where("EventClasses",
                                                          {"Name": {"$eq": parent_class_name}})
             event_properties.update(parent_class["Properties"])
+            event_defaults.update(parent_class["Defaults"])
             # Iterates through the parent classes adding the new parents properties to the start of the list
             while parent_class["Parent"]:
                 parent_class = db_manager.get_doc_from_where("EventClasses",
                                                              {"Name": {"$eq": parent_class["Parent"]}})
                 event_properties.update(parent_class["Properties"])
+                event_defaults.update(parent_class["Defaults"])
 
         for key, value in event_properties.items():
             row = dict()
             row["Property Name"] = key
-            row["Data Type"] = value
+            row["Value"] = f"{value}({event_defaults[key]})" if key in event_defaults else value
             properties_table_model.add_row(row)
         self.ClassProperties.setModel(properties_table_model)
+
+    def selected_property(self):
+        print("finding selected property")
+        selected_indexes = self.ClassProperties.selectionModel().selectedRows()
+        if not selected_indexes:
+            return False
+        selected_row = selected_indexes[0].row()
+        property_name = self.ClassProperties.model().get_cell(selected_row, "Property Name")
+        property_dt = self.ClassProperties.model().get_cell(selected_row, "Value").split("(")[0]
+        print(f"{property_name = }, {property_dt = }")
+        return {"Name": property_name,
+                "DataType": property_dt}
+
+    def select_property_default(self):
+        if not (selected_property := self.selected_property()):
+            return False
+        if (layout := self.PropertyDefaultWidgetFrame.layout()) and (layout.count()):
+            layout.takeAt(0).widget().deleteLater()
+        self.PropertyDefaultWidget = DT_TO_WIDGET[selected_property["DataType"]]()
+        self.DefaultPropertyLabel.setText(f"Default Value of: **{selected_property['Name']}**")
+        self.PropertyDefaultWidgetFrame.layout().addWidget(DT_TO_WIDGET[selected_property["DataType"]]())
+
+    def add_property_default(self):
+        if not (selected_property := self.selected_property()):
+            return False
+        if (layout := self.PropertyDefaultWidgetFrame.layout()) and (layout.count()):
+            widget = layout.itemAt(0).widget()
+            new_property_default = {
+                selected_property["Name"]: DT_WIDGET_TO_DATA[selected_property["DataType"]](widget)
+            }
+            self.new_property_defaults.update(new_property_default)
+            self.update_class_properties()
+            self.DefaultPropertyLabel.setText("Default Value of: ")
+            widget.deleteLater()
 
     def add_property(self):
         new_property = {
@@ -163,7 +261,8 @@ class NewEventClass(QWidget):
         doc = {
             "Name": self.ClassName.text(),
             "Parent": self.ParentClass.currentText(),
-            "Properties": self.new_properties
+            "Properties": self.new_properties,
+            "Defaults": self.new_property_defaults
         }
         print(f"{doc = }")
         db_manager.add_doc("EventClasses", doc)
@@ -291,12 +390,22 @@ class MainWindow(QMainWindow):
         if not (selected_event := self.selected_event()):
             return False
         print(f"{selected_event = }")
-        self.events_details_table_model = TableModel(["Date", "Type", "Comment", "Properties"])
+        self.events_details_table_model = TableModel(["Date", "Type", "Comment", "Properties"],
+                                                     orientation=Qt.Orientation.Vertical)
         row = dict()
         row["Date"] = QtCore.QDateTime(selected_event["date_time"]).date()
         row["Type"] = selected_event["Class"]
         row["Comment"] = selected_event["Comment"]
-        row["Properties"] = selected_event["Properties"]
+        # Properties is a dictionary, so we want to represent that as a table in the table lol
+        # event_properties_table_model = TableModel(list(selected_event["Properties"].keys()),
+        #                                                 orientation=Qt.Orientation.Vertical)
+        #
+        # row["Properties"] = TableViewDelegate(QTableView())
+        # row["Properties"].table_view.setModel(event_properties_table_model)
+        # event_properties_table_model.add_row(selected_event["Properties"])
+
+        # Might be easier to just show it as a string for now lmao
+        row["Properties"] = "\n".join([f"{key} : {value}" for key, value in selected_event["Properties"].items()])
         self.events_details_table_model.add_row(row)
         print(f"{row = }")
         self.EventDetailsTable.setModel(self.events_details_table_model)

@@ -131,7 +131,7 @@
     </widget>
    </item>
    <item row="2" column="1">
-    <layout class="QGridLayout" name="gridLayout_2" rowstretch="2,0,0" columnstretch="2,0">
+    <layout class="QGridLayout" name="gridLayout_2" rowstretch="2,0,0,0" columnstretch="2,0">
      <property name="leftMargin">
       <number>0</number>
      </property>
@@ -147,35 +147,6 @@
      <property name="spacing">
       <number>5</number>
      </property>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="PropertyDataType">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="placeholderText">
-        <string>Data Type</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0" colspan="2">
-      <widget class="QPushButton" name="AddProperty">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-         <horstretch>0</horstretch>
-         <verstretch>3</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Add Property</string>
-       </property>
-      </widget>
-     </item>
      <item row="0" column="0">
       <widget class="QLineEdit" name="PropertyName">
        <property name="sizePolicy">
@@ -194,21 +165,86 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="0">
+      <widget class="QFrame" name="PropertyDefaultWidgetFrame">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::Shape::StyledPanel</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Shadow::Raised</enum>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QWidget" name="widget" native="true"/>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="0" colspan="2">
+      <widget class="QPushButton" name="AddProperty">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>3</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Add Property</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QComboBox" name="PropertyDataType">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="placeholderText">
+        <string>Data Type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QPushButton" name="NewDefaultProperty">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Make
+ Default</string>
+       </property>
+      </widget>
+     </item>
      <item row="2" column="0" colspan="2">
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Orientation::Vertical</enum>
+      <widget class="QLabel" name="DefaultPropertyLabel">
+       <property name="font">
+        <font>
+         <pointsize>11</pointsize>
+         <underline>false</underline>
+         <kerning>true</kerning>
+        </font>
        </property>
-       <property name="sizeType">
-        <enum>QSizePolicy::Policy::MinimumExpanding</enum>
+       <property name="text">
+        <string>Default Value of:</string>
        </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
+       <property name="textFormat">
+        <enum>Qt::TextFormat::MarkdownText</enum>
        </property>
-      </spacer>
+      </widget>
      </item>
     </layout>
    </item>

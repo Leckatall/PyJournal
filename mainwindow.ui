@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1016</width>
-    <height>664</height>
+    <height>666</height>
    </rect>
   </property>
   <property name="tabletTracking">
@@ -28,7 +28,7 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QTabWidget" name="tabWidget">
+     <widget class="QTabWidget" name="TabWidget">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -193,8 +193,13 @@
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="font">
+           <font>
+            <pointsize>18</pointsize>
+           </font>
+          </property>
           <property name="readOnly">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
           <property name="placeholderText">
            <string>Entry Title</string>
@@ -210,7 +215,7 @@
            </sizepolicy>
           </property>
           <property name="readOnly">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
           <property name="showGroupSeparator" stdset="0">
            <bool>true</bool>
@@ -229,7 +234,7 @@
         <item row="1" column="1" colspan="2">
          <widget class="QTextEdit" name="EntryContent">
           <property name="readOnly">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
           <property name="placeholderText">
            <string>Entry Description</string>
@@ -267,246 +272,152 @@
            <string notr="true"/>
           </property>
           <property name="text">
-           <string>Update Entry</string>
+           <string>Add Entry</string>
           </property>
          </widget>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="TasksTab">
+      <widget class="QWidget" name="ProjectsTab">
        <attribute name="title">
-        <string>Tasks</string>
+        <string>Projects</string>
        </attribute>
-       <widget class="QTreeWidget" name="treeWidget">
-        <property name="geometry">
-         <rect>
-          <x>20</x>
-          <y>40</y>
-          <width>256</width>
-          <height>192</height>
-         </rect>
-        </property>
-        <column>
-         <property name="text">
-          <string notr="true">1</string>
-         </property>
-        </column>
-       </widget>
-       <widget class="QFrame" name="frame_3">
-        <property name="geometry">
-         <rect>
-          <x>630</x>
-          <y>20</y>
-          <width>331</width>
-          <height>421</height>
-         </rect>
-        </property>
-        <property name="frameShape">
-         <enum>QFrame::Shape::StyledPanel</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Shadow::Raised</enum>
-        </property>
-        <widget class="QListWidget" name="TaskList_2">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>30</y>
-           <width>150</width>
-           <height>330</height>
-          </rect>
-         </property>
-         <property name="toolTip">
-          <string>Task List</string>
-         </property>
-        </widget>
-        <widget class="QLabel" name="TasksLabel_2">
-         <property name="geometry">
-          <rect>
-           <x>90</x>
-           <y>0</y>
-           <width>141</width>
-           <height>31</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt; font-weight:700;&quot;&gt;Tasks&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-         </property>
-        </widget>
-        <widget class="QPushButton" name="NewTaskButton_2">
-         <property name="geometry">
-          <rect>
-           <x>10</x>
-           <y>370</y>
-           <width>311</width>
-           <height>41</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Add Task</string>
-         </property>
-        </widget>
-        <widget class="QFrame" name="frame_4">
-         <property name="geometry">
-          <rect>
-           <x>170</x>
-           <y>30</y>
-           <width>150</width>
-           <height>330</height>
-          </rect>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::Shape::StyledPanel</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Shadow::Raised</enum>
-         </property>
-         <widget class="QTextEdit" name="TaskDetails_2">
-          <property name="geometry">
-           <rect>
-            <x>10</x>
-            <y>50</y>
-            <width>130</width>
-            <height>270</height>
-           </rect>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::Shape::Box</enum>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="0" column="0" rowspan="2">
+         <widget class="QTableView" name="tableView"/>
+        </item>
+        <item row="0" column="2">
+         <widget class="QLineEdit" name="lineEdit"/>
+        </item>
+        <item row="3" column="0">
+         <widget class="QPushButton" name="NewProjectInstance">
+          <property name="text">
+           <string>New Project Instance</string>
           </property>
          </widget>
-        </widget>
-       </widget>
-       <widget class="QPushButton" name="NewTaskClass">
-        <property name="geometry">
-         <rect>
-          <x>80</x>
-          <y>460</y>
-          <width>221</width>
-          <height>51</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>New Task Class</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="NewTaskInstance">
-        <property name="geometry">
-         <rect>
-          <x>350</x>
-          <y>450</y>
-          <width>161</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>New Task Instance</string>
-        </property>
-       </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QPushButton" name="NewProjectClass">
+          <property name="text">
+           <string>New Project Class</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <layout class="QFormLayout" name="formLayout"/>
+        </item>
+       </layout>
       </widget>
       <widget class="QWidget" name="EventsTab">
        <attribute name="title">
         <string>Events</string>
        </attribute>
-       <widget class="QTreeWidget" name="EventClassTree">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>20</y>
-          <width>221</width>
-          <height>421</height>
-         </rect>
-        </property>
-        <property name="columnCount">
-         <number>2</number>
-        </property>
-        <column>
-         <property name="text">
-          <string notr="true">1</string>
-         </property>
-        </column>
-        <column>
-         <property name="text">
-          <string notr="true">2</string>
-         </property>
-        </column>
-       </widget>
-       <widget class="QPushButton" name="NewEventClass">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>450</y>
-          <width>221</width>
-          <height>41</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Create Event Class</string>
-        </property>
-       </widget>
-       <widget class="QPushButton" name="NewEventInstance">
-        <property name="geometry">
-         <rect>
-          <x>480</x>
-          <y>470</y>
-          <width>221</width>
-          <height>41</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Add Event</string>
-        </property>
-       </widget>
-       <widget class="QTableView" name="EventClassDetails">
-        <property name="geometry">
-         <rect>
-          <x>240</x>
-          <y>20</y>
-          <width>221</width>
-          <height>421</height>
-         </rect>
-        </property>
-       </widget>
-       <widget class="QTableView" name="EventsTable">
-        <property name="geometry">
-         <rect>
-          <x>470</x>
-          <y>20</y>
-          <width>256</width>
-          <height>441</height>
-         </rect>
-        </property>
-        <property name="selectionMode">
-         <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
-        </property>
-        <property name="selectionBehavior">
-         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
-        </property>
-        <attribute name="verticalHeaderVisible">
-         <bool>false</bool>
-        </attribute>
-       </widget>
-       <widget class="QTableView" name="EventDetailsTable">
-        <property name="geometry">
-         <rect>
-          <x>730</x>
-          <y>30</y>
-          <width>256</width>
-          <height>431</height>
-         </rect>
-        </property>
-        <attribute name="horizontalHeaderVisible">
-         <bool>false</bool>
-        </attribute>
-        <attribute name="horizontalHeaderStretchLastSection">
-         <bool>true</bool>
-        </attribute>
-        <attribute name="verticalHeaderCascadingSectionResizes">
-         <bool>true</bool>
-        </attribute>
-        <attribute name="verticalHeaderStretchLastSection">
-         <bool>true</bool>
-        </attribute>
-       </widget>
+       <layout class="QGridLayout" name="gridLayout_3" rowstretch="9,1" columnstretch="2,2,1,1">
+        <item row="0" column="0">
+         <widget class="QTreeWidget" name="EventClassTree">
+          <property name="columnCount">
+           <number>2</number>
+          </property>
+          <attribute name="headerCascadingSectionResizes">
+           <bool>true</bool>
+          </attribute>
+          <column>
+           <property name="text">
+            <string notr="true">1</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string notr="true">2</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QTableView" name="EventClassDetails"/>
+        </item>
+        <item row="0" column="2">
+         <widget class="QTableView" name="EventsTable">
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+          </property>
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QTableView" name="EventDetailsTable">
+          <attribute name="horizontalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+          <attribute name="verticalHeaderCascadingSectionResizes">
+           <bool>true</bool>
+          </attribute>
+          <attribute name="verticalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QPushButton" name="NewEventClass">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Create Event Class</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QPushButton" name="EditEventClass">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Edit Event Class</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="QPushButton" name="NewEventInstance">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Add Event</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="3">
+         <widget class="QPushButton" name="EditEventInstance">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Edit Event Instance</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
       <widget class="QWidget" name="DayOverviewTab">
        <attribute name="title">

@@ -156,7 +156,7 @@ class NewEventClass(QWidget):
 
         # initializing comboboxes
         self.PropertyDataType.addItems([data_type["Name"] for data_type in db_manager.get_docs_from("DataTypes")])
-        self.update_parent_class_options()
+        self.ParentClass.addItems([event_class["Name"] for event_class in db_manager.get_docs_from("EventClasses")])
         self.ParentClass.currentIndexChanged.connect(self.update_class_properties)
 
         # Adding custom properties
@@ -186,10 +186,6 @@ class NewEventClass(QWidget):
         self.ParentClass.currentIndexChanged.connect(enable_add_class)
         self.ConfirmAddEventClass.clicked.connect(self.add_event_class)
         self.ClassProperties.clicked.connect(self.select_property_default)
-
-    def update_parent_class_options(self):
-        self.ParentClass.addItems(
-            [event_class["Name"] for event_class in db_manager.get_docs_from("EventClasses")])
 
     def update_class_properties(self):
         properties_table_model = TableModel(["Property Name", "Value"])
@@ -336,10 +332,48 @@ class NewEventInstance(QtWidgets.QDialog):
         self.close()
 
 
+class NewProjectClass(QWidget):
+    def __init__(self, update_project_class_list_method):
+        super().__init__()
+        self.ui = uic.loadUi("new_project_class.ui", self)
+        self.update_method = update_project_class_list_method
+
+        # Widgets added by "new_event_class.ui"
+        self.ClassProperties: QtWidgets.QTableView
+        self.ConfirmAddEventClass: QPushButton
+        self.ClearProperty: QPushButton
+        self.ParentClass: QComboBox
+        self.PropertyDataType: QtWidgets.QComboBox
+        self.ClassName: QLineEdit
+        self.PropertyName: QLineEdit
+        self.AddProperty: QPushButton
+
+        self.TaskType.addItems([data_type["Name"] for data_type in db_manager.get_docs_from("DataTypes")])
+        self.ProjectType.addItems(["Continuous", "Singular", "Recurring"])
+
+        self.project_tasks: list[dict] = []
+
+        self.update_project_tasks()
+
+    def update_project_tasks(self):
+        properties_table_model = TableModel(["Task", "Type", "Weighting"])
+        for task in self.project_tasks:
+            # for key, value in task.items():
+            #     row = dict()
+            #     row["Task"] = key
+            #     row["Type"] = value["Type"]
+            #     row["Weighting"] = value["Weighting"]
+            #     properties_table_model.add_row(row)
+            properties_table_model.add_row(task)
+        self.TaskTable.setModel(properties_table_model)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = uic.loadUi("mainwindow.ui", self)
+
+        self.TabWidget.currentChanged.connect(self.tab_update)
 
         # Overview Tab
         self.NewTaskButton.clicked.connect(self.new_task)
@@ -355,9 +389,12 @@ class MainWindow(QMainWindow):
         self.UpdateEntryButton.clicked.connect(self.update_entry)
 
         # Enables UpdateEntryButton when the entry is modified
-        self.EntryTitle.editingFinished.connect(self.entry_modified)
-        self.EntryContent.textChanged.connect(self.entry_modified)
-        self.EntryDateTime.dateTimeChanged.connect(self.entry_modified)
+        def entry_modified():
+            self.UpdateEntryButton.setEnabled(True)
+
+        self.EntryTitle.editingFinished.connect(entry_modified)
+        self.EntryContent.textChanged.connect(entry_modified)
+        self.EntryDateTime.dateTimeChanged.connect(entry_modified)
 
         # Events Tab
         self.NewEventClass: QPushButton
@@ -372,6 +409,17 @@ class MainWindow(QMainWindow):
 
         self.events_details_table_model = TableModel(["Date", "Type", "Comment", "Properties"])
         self.EventDetailsTable.setModel(self.events_details_table_model)
+
+        # Projects Tab
+        self.NewProjectClass.clicked.connect(self.new_project_class)
+
+    def tab_update(self, new_tab_index):
+        if new_tab_index == 1:
+            self.new_entry()
+
+    def new_project_class(self):
+        new_project_class_window = NewProjectClass(self.update_project_classes_tree)
+        new_project_class_window.show()
 
     def selected_event(self):
         print("finding selected event")
@@ -435,34 +483,38 @@ class MainWindow(QMainWindow):
                     continue
             else:
                 parent = self.EventClassTree
+            event_defaults = event_class["Defaults"]
+            event_properties = event_class["Properties"]
             new_item = QtWidgets.QTreeWidgetItem(parent, [event_class["Name"], ",\n".join(
-                [f"{key}: {value}" for key, value in event_class["Properties"].items()])])
+                [f"{key}: {value}" for key, value in event_properties.items()] +
+                [f"{key}: ({value})" for key, value in event_defaults.items()])])
             tree_item_dict[event_class["Name"]] = new_item
 
     def show_event_class_details(self):
-        properties_table_model = TableModel(["Property Name", "Data Type"])
+        properties_table_model = TableModel(["Property Name", "Data Type", "Default Value"])
         properties = dict()
+        defaults = dict()
         selected_class = db_manager.get_doc_from_where("EventClasses",
                                                        {"Name": {"$eq": self.EventClassTree.currentItem().text(0)}})
         properties.update(selected_class["Properties"])
+        defaults.update(selected_class["Defaults"])
         # Iterates through the parent classes adding the new parents properties to the start of the list
         while selected_class["Parent"]:
             selected_class = db_manager.get_doc_from_where("EventClasses",
                                                            {"Name": {"$eq": selected_class["Parent"]}})
             properties.update(selected_class["Properties"])
+            defaults.update(selected_class["Defaults"])
         for key, value in reversed(properties.items()):
             row = dict()
             row["Property Name"] = key
             row["Data Type"] = value
+            row["Default Value"] = defaults[key] if key in defaults else None
             properties_table_model.add_row(row)
         self.EventClassDetails.setModel(properties_table_model)
 
     def new_event_class(self):
         new_event_class_window = NewEventClass(self.update_event_classes_tree)
         new_event_class_window.show()
-
-    def entry_modified(self):
-        self.UpdateEntryButton.setEnabled(True)
 
     def selected_entry(self):
         selected_indexes = self.EntriesTable.selectionModel().selectedRows()
@@ -477,25 +529,30 @@ class MainWindow(QMainWindow):
         return db_manager.get_doc_from_where("Entries", query)
 
     def update_entry(self):
-        if not (selected_entry := self.selected_entry()):
-            return False
-        # There is no property to check if datetime has been changed so will just always update lol
-        # This works as a nice default tho :)
-        update_operation = {"$set": {"EntryDateTime": self.EntryDateTime.dateTime().toPyDateTime()}}
-        if self.EntryTitle.isModified():
-            update_operation["$set"]["EntryTitle"] = self.EntryTitle.text()
-        if self.EntryContent.document().isModified():
-            update_operation["$set"]["EntryContents"] = self.EntryContent.toPlainText()
+        new_entry_doc = {"EntryDateTime": self.EntryDateTime.dateTime().toPyDateTime(),
+                         "EntryTitle": self.EntryTitle.text(),
+                         "EntryContents": self.EntryContent.toPlainText()}
 
-        if db_manager.update_doc_from("Entries", selected_entry, update_operation).matched_count > 0:
+        if not (selected_entry := self.selected_entry()):
+            db_manager.add_doc("Entries", new_entry_doc)
+        elif db_manager.update_doc_from("Entries", selected_entry,
+                                        {"$set": new_entry_doc}).matched_count > 0:
             print(f"Entry Updated")
-            self.update_entries_table()
+        self.update_entries_table()
 
         self.UpdateEntryButton.setEnabled(False)
 
     def new_entry(self):
-        add_entry_window = AddEntry(self.update_entries_table)
-        add_entry_window.show()
+        self.EntryTitle.setText("")
+        self.EntryTitle.setFocus(Qt.FocusReason.OtherFocusReason)
+        self.EntryContent.setText("")
+        self.EntryDateTime.setDateTime(QtCore.QDateTime.currentDateTime())
+
+        self.UpdateEntryButton.setText("Add Entry")
+        self.UpdateEntryButton.setEnabled(False)
+
+        self.update_entries_table()
+
 
     def show_entry_details(self):
         if not (selected_entry := self.selected_entry()):
@@ -504,12 +561,9 @@ class MainWindow(QMainWindow):
         self.EntryTitle.setText(selected_entry["EntryTitle"])
         self.EntryContent.setText(selected_entry["EntryContents"])
         self.EntryDateTime.setDateTime(QtCore.QDateTime(selected_entry["EntryDateTime"]))
+        self.UpdateEntryButton.setText("Update Entry")
 
         self.UpdateEntryButton.setEnabled(False)
-
-        self.EntryTitle.setReadOnly(False)
-        self.EntryContent.setReadOnly(False)
-        self.EntryDateTime.setReadOnly(False)
 
     def update_entries_table(self):
         self.entries_table_model = TableModel(["Date", "Title"])

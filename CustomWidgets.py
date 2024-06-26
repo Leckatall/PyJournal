@@ -53,6 +53,57 @@ class TableModel(QtCore.QAbstractTableModel):
         return self.headers[section]
 
 
+class GroupedTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, headers, groups, parent=None, orientation=Qt.Orientation.Horizontal):
+        super(GroupedTableModel, self).__init__(parent)
+        self.headers = headers
+        self.groups = groups
+        self.orientation = orientation
+        self._data: list[dict] = []
+
+    def get_cell(self, row, column):
+        return self._data[row].get(column, False)
+
+    def add_row(self, row: dict):
+        self._data.append(row)
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        if self.orientation == Qt.Orientation.Horizontal:
+            return len(self._data)
+        elif self.orientation == Qt.Orientation.Vertical:
+            return len(self.headers)
+        else:
+            print(f"Unknown Orientation: {self.orientation}")
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        if self.orientation == Qt.Orientation.Horizontal:
+            return len(self.headers)
+        elif self.orientation == Qt.Orientation.Vertical:
+            return len(self._data)
+        else:
+            print(f"Unknown Orientation: {self.orientation}")
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if not index.isValid():
+            return QtCore.QVariant()
+        if role == Qt.ItemDataRole.DisplayRole:
+            if self.orientation == Qt.Orientation.Horizontal:
+                return self._data[index.row()].get(self.headers[index.column()], QtCore.QVariant())
+            elif self.orientation == Qt.Orientation.Vertical:
+                return self._data[index.column()].get(self.headers[index.row()], QtCore.QVariant())
+            else:
+                print(f"Unknown Orientation: {self.orientation}")
+        return QtCore.QVariant()
+
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role != Qt.ItemDataRole.DisplayRole:
+            return QtCore.QVariant()
+        if orientation != self.orientation:
+            return self.groups[section]
+        # What's the header for the given section?
+        return self.headers[section]
+
+
 class TableViewDelegate(QtWidgets.QStyledItemDelegate):
     def __init__(self, table_view, parent=None):
         super().__init__(parent)
@@ -92,231 +143,155 @@ class TableViewDelegate(QtWidgets.QStyledItemDelegate):
 
 
 # GPT EXAMPLE
-import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTableView, QVBoxLayout, QWidget, QStyledItemDelegate, QTableWidget, QTableWidgetItem, QAbstractItemView
-from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex, QSize
-from PyQt6.QtGui import QStandardItemModel, QStandardItem
-
-# class OuterTableModel(QtCore.QAbstractTableModel):
-#     def __init__(self, data):
-#         super().__init__()
-#         self._data = data
-#
-#     def rowCount(self, parent=None):
-#         return len(self._data)
-#
-#     def columnCount(self, parent=None):
-#         return len(self._data[0])
-#
-#     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-#         if role == Qt.ItemDataRole.DisplayRole:
-#             return self._data[index.row()][index.column()]
-#         return None
-#
-#     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-#         if role == Qt.ItemDataRole.EditRole:
-#             self._data[index.row()][index.column()] = value
-#             self.dataChanged.emit(index, index, [role])
-#             return True
-#         return False
-#
-#     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
-#         if role == Qt.ItemDataRole.DisplayRole:
-#             if orientation == Qt.Orientation.Horizontal:
-#                 return f"Column {section + 1}"
-#             elif orientation == Qt.Orientation.Vertical:
-#                 return f"Row {section + 1}"
-#         return None
-#
-#
-# class InnerTableDelegate(QStyledItemDelegate):
-#
-#     def eventFilter(self, source, event):
-#         if event.type() == QtCore.QEvent.Type.MouseButtonPress:
-#             # Handle mouse press events
-#             print(f"{source = }\n {event.type() = }")
-#         elif event.type() == QtCore.QEvent.Type.MouseMove:
-#             # Handle mouse move events
-#             pass
-#         # Pass the event to the base class for default processing
-#         return False
-#
-#     def editorEvent(self, event, model, option, index):
-#         if event.type() == QtCore.QEvent.Type.MouseButtonPress:
-#             # Change the checkbox-state
-#             self.setModelData(None, model, index)
-#             return True
-#
-#         return False
-#
-#     def setEditorData(self, editor, index):
-#         # Populate the inner table based on the outer model's data
-#         outer_data = index.model().data(index, Qt.ItemDataRole.DisplayRole)
-#         for row in range(editor.rowCount()):
-#             for column in range(editor.columnCount()):
-#                 item = QTableWidgetItem(f"{outer_data} ({row},{column})")
-#                 editor.setItem(row, column, item)
-#
-#     def setModelData(self, editor, model, index):
-#         # Collect data from the inner table to update the outer model
-#         # inner_data = []
-#         # for row in range(editor.rowCount()):
-#         #     for column in range(editor.columnCount()):
-#         #         item = editor.item(row, column)
-#         #         if item:
-#         #             inner_data.append(item.text())
-#         # model.setData(index, ', '.join(inner_data), Qt.ItemDataRole.EditRole)
-#         ...
-#
-#     def updateEditorGeometry(self, editor, option, index):
-#         editor.setGeometry(option.rect)
-#
-#     def paint(self, painter, option, index):
-#         inner_table = QTableWidget(option.widget)
-#         inner_table.viewport().installEventFilter(self)  # Install event filter
-#         inner_table.setRowCount(2)  # Example row count
-#         inner_table.setColumnCount(2)  # Example column count
-#         inner_table.setFixedSize(QSize(option.rect.width(), option.rect.height()))  # Adjust size as needed
-#         inner_table.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-#         # inner_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)  # Disable editing
-#
-#         self.setEditorData(inner_table, index)
-#         inner_table.setGeometry(option.rect)
-#         # Calculate the correct position for the inner table within the cell
-#         painter.save()
-#         painter.translate(option.rect.topLeft())
-#         inner_table.render(painter, flags=QtWidgets.QWidget.RenderFlag.DrawChildren)
-#         painter.restore()
-#
-#
-# class MainWindow(QMainWindow):
-#     def __init__(self):
-#         super().__init__()
-#         # self.ui = uic.loadUi("test_window.ui", self)
-#         #
-#         # table_data = [{"Title": "blah", "Rating":  2},
-#         #               {"Title": "bleh", "Rating":  10}]
-#         # table_model = TableModel(["Title", "Rating"])
-#         # [table_model.add_row(row) for row in table_data]
-#         # table = QTableView()
-#         # table.setModel(table_model)
-#         # table.setItemDelegate(TableViewDelegate(""))
-#         # self.setCentralWidget(table)
-#
-#         self.setWindowTitle("Embed QTableView in QTableView Example")
-#         self.setGeometry(100, 100, 800, 600)
-#
-#         central_widget = QWidget()
-#         self.setCentralWidget(central_widget)
-#
-#         layout = QVBoxLayout(central_widget)
-#
-#         # Sample data for the outer table
-#         data = [
-#             ["Inner Table 1", "Inner Table 2"],
-#             ["Inner Table 3", "Inner Table 4"]
-#         ]
-#
-#         # Create the outer table model
-#         model = OuterTableModel(data)
-#
-#         # Create the outer table view and set the model
-#         table_view = QTableView()
-#         table_view.setModel(model)
-#
-#         # Set the custom delegate to the outer table view
-#         delegate = InnerTableDelegate(table_view)
-#         table_view.setItemDelegate(delegate)
-#
-#         # Set fixed row and column sizes to fit inner tables correctly
-#         table_view.verticalHeader().setDefaultSectionSize(120)  # Adjust row height as needed
-#         table_view.horizontalHeader().setDefaultSectionSize(240)  # Adjust column width as needed
-#
-#         layout.addWidget(table_view)
-#
-
-# GPT attempt 2
-
-
-# class InnerTableModel(QStandardItemModel):
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         self.setHorizontalHeaderLabels(['Column 1', 'Column 2'])
-#         self.appendRow([QStandardItem('Data 1'), QStandardItem('Data 2')])
-#
-#
-# class OuterTableModel(QStandardItemModel):
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         self.setHorizontalHeaderLabels(['Outer Column'])
-#         # Add some dummy data to the outer model
-#         for _ in range(5):
-#             item = QStandardItem('Outer Data')
-#             self.appendRow(item)
-#
-#
-# class InnerTableDelegate(QStyledItemDelegate):
-#     def paint(self, painter, option, index):
-#         inner_table = QTableView(option.widget)
-#         inner_model = InnerTableModel()
-#         inner_table.setModel(inner_model)
-#         inner_table.setGeometry(option.rect)
-#
-#
-# class MainWindow(QMainWindow):
-#     def __init__(self):
-#         super().__init__()
-#         self.setWindowTitle("Nested QTableView Example")
-#         self.setGeometry(100, 100, 800, 600)
-#
-#         central_widget = QWidget()
-#         self.setCentralWidget(central_widget)
-#         layout = QVBoxLayout(central_widget)
-#
-#         # Outer table
-#         outer_model = OuterTableModel()
-#         outer_table = QTableView()
-#         outer_table.setModel(outer_model)
-#         # outer_table.setItemDelegate(InnerTableDelegate())
-#         outer_table.setItemDelegateForColumn(0, InnerTableDelegate())
-#         layout.addWidget(outer_table)
-
 # GPT attempt 3
 
 
-class BandedHeaderView(QtWidgets.QHeaderView):
-    def __init__(self, parent=None):
-        super().__init__(Qt.Orientation.Horizontal, parent)
-        self.bands = []
+class CustomTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, data, headers, parent=None):
+        super().__init__(parent)
+        self._data = data
+        self._headers = headers
 
-    def add_band(self, start, length, title):
-        self.bands.append((start, length, title))
+    def rowCount(self, parent=None):
+        return len(self._data)
+
+    def columnCount(self, parent=None):
+        return len(self._data[0])
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if not index.isValid():
+            return QtCore.QVariant()
+        if role == Qt.ItemDataRole.DisplayRole:
+            return self._data[index.row()][index.column()]
+        return QtCore.QVariant()
+
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
+                return self._headers[section]
+            if orientation == Qt.Orientation.Vertical:
+                return f"Row {section}"
+        return QtCore.QVariant()
+
+
+class BandedHeaderView(QtWidgets.QHeaderView):
+    def __init__(self, orientation, parent=None):
+        super().__init__(orientation, parent)
+        self.bands = []
+        self.resizeSection()
+
+
+    def add_band(self, start, end, title):
+        self.bands.append((start, end, title))
 
     def paintSection(self, painter, rect, logicalIndex):
-        for start, length, title in self.bands:
-            if start <= logicalIndex < start + length:
+        for start, end, title in self.model().groupings:
+            if start <= logicalIndex <= end:
                 if logicalIndex == start:
                     painter.save()
                     option = QStyleOptionHeader()
                     self.initStyleOption(option)
-                    option.rect = QRect(rect.left(), rect.top(), rect.width() * length, rect.height())
+                    if self.orientation() == Qt.Orientation.Horizontal:
+                        option.rect = QRect(rect.left(), rect.top(), rect.width() * (end - start + 1), rect.height())
+                    else:
+                        option.rect = QRect(rect.left(), rect.top(), rect.width(), rect.height() * (end - start + 1))
                     option.text = title
                     self.style().drawControl(self.style().ControlElement.CE_Header, option, painter)
                     painter.restore()
                 return
         super().paintSection(painter, rect, logicalIndex)
 
+        def sectionSizeFromContents(self, logicalIndex):
+            size = super().sectionSizeFromContents(logicalIndex)
+            for start, end, _ in self.bands:
+                if start <= logicalIndex <= end:
+                    if self.orientation() == Qt.Orientation.Horizontal:
+                        size.setWidth(size.width() * (end - start + 1))
+                    else:
+                        size.setHeight(size.height() * (end - start + 1))
+            return size
 
-class BandedTableWidget(QTableWidget):
-    def __init__(self, rows, columns):
-        super().__init__(rows, columns)
-        self.banded_header_view = BandedHeaderView()
-        self.setHorizontalHeader(self.banded_header_view)
+import sys
+from PyQt6.QtWidgets import QApplication, QTableWidget, QHeaderView, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt, QModelIndex, QEvent, QVariant
 
-        # Add banded headers
-        self.banded_header_view.add_band(0, 2, "Band 1")
-        self.banded_header_view.add_band(2, 2, "Band 2")
-        self.banded_header_view.add_band(4, 1, "Band 3")
+
+class MyHeaderModel(QtCore.QAbstractItemModel):
+    def __init__(self, parent=None):
+        super(MyHeaderModel, self).__init__(parent)
+
+    def columnCount(self, parent=QModelIndex()):
+        return 2
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        return QVariant()
+
+    def index(self, row, column, parent=QModelIndex()):
+        return QModelIndex()
+
+    def parent(self, index):
+        return QModelIndex()
+
+    def rowCount(self, parent=QModelIndex()):
+        return 0
+
+
+class MyHeader(QHeaderView):
+    def __init__(self, header, parent=None):
+        super(MyHeader, self).__init__(Qt.Orientation.Horizontal, header)
+        self.mainHeader = header
+        self.setModel(MyHeaderModel(self))
+        # This example uses hardcoded groups, you can extend
+        # this yourself to save the groups
+        # Group 1 is 0-2 and Group 2 is 3-4
+        self.resizeSection(0, self.getSectionSizes(0, 2))
+        self.resizeSection(1, self.getSectionSizes(3, 4))
+        self.sectionResized.connect(self.updateSizes)
+        self.mainHeader.parentWidget().horizontalScrollBar().valueChanged.connect(self.updateOffset)
+        self.setGeometry(0, 0, header.width(), header.height())
+        self.updateOffset()
+        self.mainHeader.installEventFilter(self)
+
+    def updateSizes(self):
+        self.setOffset(self.mainHeader.offset())
+        self.mainHeader.resizeSection(2, self.mainHeader.sectionSize(2) + (self.sectionSize(0) - self.getSectionSizes(0, 2)))
+        self.mainHeader.resizeSection(4, self.mainHeader.sectionSize(4) + (self.sectionSize(1) - self.getSectionSizes(3, 4)))
+
+    def updateOffset(self):
+        self.setOffset(self.mainHeader.offset())
+
+    def eventFilter(self, obj, event):
+        if obj == self.mainHeader:
+            if event.type() == QEvent.Type.Resize:
+                self.setOffset(self.mainHeader.offset())
+                self.setGeometry(0, 0, self.mainHeader.width(), self.mainHeader.height())
+            return False
+        return QHeaderView.eventFilter(self, obj, event)
+
+    def getSectionSizes(self, first, second):
+        size = 0
+        for a in range(first, second + 1):
+            size += self.mainHeader.sectionSize(a)
+        return size
+
+
+def make_banded_table_view(table_view):
+    # Set custom horizontal header view
+    horizontal_header = BandedHeaderView(Qt.Orientation.Horizontal)
+    table_view.setHorizontalHeader(horizontal_header)
+
+    # Add horizontal banded headers
+    horizontal_header.add_band(0, 2, "Band 1")
+    horizontal_header.add_band(3, 4, "Band 2")
+
+    # # Set custom vertical header view
+    # vertical_header = BandedHeaderView(Qt.Orientation.Vertical)
+    # table_view.setVerticalHeader(vertical_header)
+    #
+    # # Add vertical banded headers
+    # vertical_header.add_band(0, 2, "V-Band 1")
+    # vertical_header.add_band(2, 2, "V-Band 2")
+    # vertical_header.add_band(4, 1, "V-Band 3")
 
 
 class MainWindow(QMainWindow):
@@ -327,16 +302,59 @@ class MainWindow(QMainWindow):
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
 
-        table = BandedTableWidget(5, 5)
+        self.layout = QtWidgets.QVBoxLayout(central_widget)
+        self.table_view = QTableView(central_widget)
 
-        # Fill the table with some data for demonstration
-        for row in range(5):
-            for col in range(5):
-                table.setItem(row, col, QTableWidgetItem(f"Row {row}, Col {col}"))
 
-        layout.addWidget(table)
+        # Sample data
+        data = [
+            [1, 2, 3, 4, 5],
+            [11, 12, 13, 14, 15]
+        ]
+
+        headers = ["Col 0", "Col 1", "Col 2", "Col 3", "Col 4"]
+        model = CustomTableModel(data, headers)
+        self.table_view.setModel(model)
+        self.table_view.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+                                      QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        header = MyHeader(self.table_view.horizontalHeader())
+        # self.table_view.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        # self.table_view.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+
+        # self.child_table = QTableView()
+        # data = [
+        #     ["a", "b"],
+        #     ["c", "d"]
+        # ]
+        # child_headers = ["Col A", "Col B"]
+        # child_model = CustomTableModel(data, child_headers)
+        # self.child_table.setModel(child_model)
+        # self.child_table.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+        #                               QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        # self.child_table.setSpan(0,0, 2, 1)
+        # self.table_view.setIndexWidget(model.index(0, 0), self.child_table)
+        #
+        # self.table_view.resizeRowsToContents()
+        # self.table_view.resizeColumnsToContents()
+
+        # Add the table view to the layout
+        self.layout.addWidget(self.table_view)
+
+        # horizontal_header = BandedHeaderView(Qt.Orientation.Vertical)
+        # self.table_view.setVerticalHeader(horizontal_header)
+        #
+        # # Add horizontal banded headers
+        # horizontal_header.add_band(0, 2, "Group 1")
+        # horizontal_header.add_band(3, 4, "Group 2")
+
+        # Button to apply banded header
+        self.button = QPushButton("Apply Banded Header")
+        self.button.clicked.connect(self.apply_banded_header)
+        self.layout.addWidget(self.button)
+
+    def apply_banded_header(self):
+        make_banded_table_view(self.table_view)
 
 
 if __name__ == "__main__":

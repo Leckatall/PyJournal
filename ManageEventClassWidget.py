@@ -93,7 +93,6 @@ class ManageEventClasses(QWidget):
         # self.original_doc = db_manager.get_doc_from_where("EventClasses",
         #                                                         {"Name": {"$eq": event_class_name}})
         self.new_properties = dict()
-        self.new_defaults = dict()
         # self.ParentClass.addItems([event_class["Name"] for event_class in db_manager.get_docs_from("EventClasses")])
         #
         # if event_class_name:
@@ -102,7 +101,6 @@ class ManageEventClasses(QWidget):
         #     self.ParentClass.setCurrentIndex(self.ParentClass.findText(self.original_doc["Parent"],
         #                                                                Qt.MatchFlag.MatchFixedString))
         #     self.new_properties = self.original_doc["Properties"]
-        #     self.new_defaults = self.original_doc["Defaults"]
         #     self.update_class_properties()
         #     self.ConfirmAddEventClass.setText(f"Update {event_class_name}")
 
@@ -136,36 +134,28 @@ class ManageEventClasses(QWidget):
 
     def update_class_properties(self):
         self.ShowParentLabel.setText(f"Inherits: {self.EventClassesTree.currentItem().text(0)}")
-        properties_table_model = TableModel(["Property Name", "Data Type", "Default"])
+        properties_table_model = TableModel(["Property Name", "Data Type"])
         inherited_properties: dict = dict()
-        inherited_defaults: dict = dict()
         if parent_class_name := self.EventClassesTree.currentItem().text(0):
             parent_class = db_manager.get_doc_from_where("EventClasses",
                                                          {"Name": {"$eq": parent_class_name}})
             inherited_properties.update(parent_class["Properties"])
-            inherited_defaults.update(parent_class["Defaults"])
             # Iterates through the parent classes adding the new parents properties to the start of the list
             while parent_class["Parent"]:
                 parent_class = db_manager.get_doc_from_where("EventClasses",
                                                              {"Name": {"$eq": parent_class["Parent"]}})
                 inherited_properties.update(parent_class["Properties"])
-                inherited_defaults.update(parent_class["Defaults"])
 
         for key, value in inherited_properties.items():
             row = dict()
             row["Property Name"] = key
             row["Data Type"] = value
-            # row["Default"] = self.new_defaults[key] if key in self.new_defaults else inherited_defaults.get(key, "")
-            # print(f"{self.new_defaults.get(key, "") = }")
             properties_table_model.add_row(row)
 
         # Update Table of new properties
         for key, value in self.new_properties.items():
             row = dict()
             row["Data Type"] = value
-            # row["Default"] = self.new_defaults.get(key, "")
-            # print(f"{self.new_defaults.get(key, "") = }")
-
             properties_table_model.add_row(row)
 
         properties_table_model.groupings = [(0, len(inherited_properties), "Inherited"),
@@ -190,11 +180,9 @@ class ManageEventClasses(QWidget):
                     continue
             else:
                 parent = self.EventClassesTree
-            event_defaults = event_class["Defaults"]
             event_properties = event_class["Properties"]
             new_item = QtWidgets.QTreeWidgetItem(parent, [event_class["Name"], ",\n".join(
-                [f"{key}: {value}" for key, value in event_properties.items()] +
-                [f"{key}: ({value})" for key, value in event_defaults.items()])])
+                [f"{key}: {value}" for key, value in event_properties.items()])])
             tree_item_dict[event_class["Name"]] = new_item
 
     def edit_event_class(self):
@@ -208,7 +196,6 @@ class ManageEventClasses(QWidget):
         self.EventClassesTree.setCurrentItem(self.EventClassesTree.currentItem().parent())
 
         self.new_properties = self.original_doc["Properties"]
-        self.new_defaults = self.original_doc["Defaults"]
         self.update_class_properties()
 
         self.UpdateEventClassButton.setText(f"Update {event_class_name}")
@@ -240,24 +227,10 @@ class ManageEventClasses(QWidget):
         selected_row = selected_indexes[0].row()
         property_name = self.ClassProperties.model().get_cell(selected_row, "Property Name")
         property_dt = self.ClassProperties.model().get_cell(selected_row, "Data Type")
-        property_default = self.ClassProperties.model().get_cell(selected_row, "Default")
         print(f"{property_name = }, {property_dt = }, {property_default = }")
         return {"Name": property_name,
-                "DataType": property_dt,
-                "Default": property_default}
-
-    def add_property_default(self):
-        if not (selected_property := self.selected_property()):
-            return False
-        if (layout := self.PropertyDefaultWidgetFrame.layout()) and (layout.count()):
-            widget = layout.itemAt(0).widget()
-            new_property_default = {
-                selected_property["Name"]: MyDatatypes.DT_WIDGET_TO_DATA[selected_property["DataType"]](widget)
-            }
-            self.new_defaults.update(new_property_default)
-            self.update_class_properties()
-            self.DefaultPropertyLabel.setText("Default Value of: ")
-            widget.deleteLater()
+                "DataType": property_dt
+                }
 
     def add_property(self):
         new_property = {
@@ -273,7 +246,6 @@ class ManageEventClasses(QWidget):
             "Name": self.ClassName.text(),
             "Parent": self.ParentClass.currentText(),
             "Properties": self.new_properties,
-            "Defaults": self.new_defaults
         }
         print(f"{doc = }")
         if self.event_class_name:
